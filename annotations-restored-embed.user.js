@@ -2,7 +2,7 @@
 // @name           Annotations Restored (embedded)
 // @description    Bring annotation support back to embedded YouTube videos
 // @author         Pluie
-// @version        0.1.3
+// @version        0.1.4
 // @license        GPLv3
 // @homepageURL    https://github.com/PluieElectrique/annotations-restored-embed
 // @supportURL     https://github.com/PluieElectrique/annotations-restored-embed/issues
@@ -36,7 +36,9 @@ waitForElement(".ytp-title-link").then((el) => {
         }
 
         window.dispatchEvent(
-            new CustomEvent("ar-status-change", { detail: "Trying to load annotations..." })
+            new CustomEvent("ar-status-change", {
+                detail: { msg: "Trying to load annotations...", enabled: false },
+            })
         );
 
         if (renderer) {
@@ -79,7 +81,7 @@ waitForElement(".ytp-right-controls")
         progressButton.classList.add("ytp-button", "ytp-settings-button");
 
         progressButton.innerHTML = `
-	<svg width="100%" height="100%" viewBox="0 0 1 1" fill="white" version="1.1">
+	<svg width="100%" height="100%" viewBox="0 0 1 1" fill="white" version="1.1" style="fill-opacity: 0.3;">
 	<path d="M0.786081 0.689854H0.523479L0.356887 0.807575V0.689854H0.230654V0.30394H0.786081V0.689854Z"/>
 	</svg>	
 	`;
@@ -114,8 +116,14 @@ waitForElement(".ytp-right-controls")
         });
 
         window.addEventListener("ar-status-change", (e) => {
-            progressButton.setAttribute("title", e.detail);
-            progressButton.setAttribute("aria-label", e.detail);
+            progressButton.setAttribute("title", e.detail.msg);
+            progressButton.setAttribute("aria-label", e.detail.msg);
+
+            if (e.detail.enabled) {
+                progressButton.children[0].style.fillOpacity = 1;
+            } else {
+                progressButton.children[0].style.fillOpacity = 0.3;
+            }
         });
     })
     .catch(() => {
@@ -136,35 +144,29 @@ function handleMessage(request) {
     if (request.type === "annotations_received") {
         const annotationData = request.xml;
         if (annotationData) {
-            try {
-                const annotationDom = annotationParser.xmlToDom(annotationData);
-                const annotationElements = annotationDom.getElementsByTagName("annotation");
+            const annotationDom = annotationParser.xmlToDom(annotationData);
+            const annotationElements = annotationDom.getElementsByTagName("annotation");
 
-                const annotations = annotationParser.parseYoutubeAnnotationList(annotationElements);
-                startNewAnnotationRenderer(annotations);
+            const annotations = annotationParser.parseYoutubeAnnotationList(annotationElements);
+            startNewAnnotationRenderer(annotations);
 
-                if (renderer.annotations.length) {
-                    window.dispatchEvent(
-                        new CustomEvent("ar-status-change", {
-                            detail: "Received annotation data from server. Annotations should now be loaded.\nClick to see annotation times.",
-                        })
-                    );
-                } else {
-                    // The API server can send an XML file with zero annotations.
-                    window.dispatchEvent(
-                        new CustomEvent("ar-status-change", {
-                            detail: "Annotations are not available for this video.",
-                        })
-                    );
-                }
-            } catch (e) {
-                // Sometimes the annotation data fails to parse, but I don't
-                // know why--as soon as I added logging, I could no longer
-                // reproduce the problem. So, catching the error will have to
-                // do for now.
+            if (renderer.annotations.length) {
                 window.dispatchEvent(
                     new CustomEvent("ar-status-change", {
-                        detail: "Failed to parse annotations.",
+                        detail: {
+                            msg: "Received annotation data from server. Annotations should now be loaded.\nClick to see annotation times.",
+                            enabled: true,
+                        },
+                    })
+                );
+            } else {
+                // The API server can send an XML file with zero annotations or even garbage data.
+                window.dispatchEvent(
+                    new CustomEvent("ar-status-change", {
+                        detail: {
+                            msg: "Annotations are not available for this video.",
+                            enabled: false,
+                        },
                     })
                 );
                 console.error("Failed to parse annotations:", e);
@@ -174,7 +176,7 @@ function handleMessage(request) {
     } else if (request.type === "annotations_unavailable") {
         window.dispatchEvent(
             new CustomEvent("ar-status-change", {
-                detail: "Annotations are not available for this video.",
+                detail: { msg: "Annotations are not available for this video.", enabled: false },
             })
         );
     }
