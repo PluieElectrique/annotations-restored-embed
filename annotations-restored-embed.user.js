@@ -2,7 +2,7 @@
 // @name           Annotations Restored (embedded)
 // @description    Bring annotation support back to embedded YouTube videos
 // @author         Pluie
-// @version        0.1.1
+// @version        0.1.2
 // @license        GPLv3
 // @homepageURL    https://github.com/PluieElectrique/annotations-restored-embed
 // @supportURL     https://github.com/PluieElectrique/annotations-restored-embed/issues
@@ -35,7 +35,9 @@ waitForElement(".ytp-title-link").then((el) => {
             currentVideoId = videoId;
         }
 
-        window.dispatchEvent(new CustomEvent("ar-status-change", { detail: "Video changing..." }));
+        window.dispatchEvent(
+            new CustomEvent("ar-status-change", { detail: "Trying to load annotations..." })
+        );
 
         if (renderer) {
             renderer.stop();
@@ -82,8 +84,8 @@ waitForElement(".ytp-right-controls")
 	</svg>	
 	`;
 
-        progressButton.setAttribute("title", "Annotations aren't found");
-        progressButton.setAttribute("aria-label", "Annotations aren't found");
+        progressButton.setAttribute("title", "Initializing annotation userscript...");
+        progressButton.setAttribute("aria-label", "Initializing annotation userscript...");
 
         el.prepend(progressButton);
 
@@ -107,7 +109,7 @@ waitForElement(".ytp-right-controls")
 
                 alert(times);
             } else {
-                alert("There are no annotations loaded.");
+                alert(progressButton.getAttribute("title"));
             }
         });
 
@@ -134,17 +136,31 @@ function handleMessage(request) {
     if (request.type === "annotations_received") {
         const annotationData = request.xml;
         if (annotationData) {
-            window.dispatchEvent(
-                new CustomEvent("ar-status-change", {
-                    detail: "Received annotation data from server. Annotations should now be loaded.\nClick to see annotation times.",
-                })
-            );
+            try {
+                const annotationDom = annotationParser.xmlToDom(annotationData);
+                const annotationElements = annotationDom.getElementsByTagName("annotation");
 
-            const annotationDom = annotationParser.xmlToDom(annotationData);
-            const annotationElements = annotationDom.getElementsByTagName("annotation");
+                const annotations = annotationParser.parseYoutubeAnnotationList(annotationElements);
+                startNewAnnotationRenderer(annotations);
 
-            const annotations = annotationParser.parseYoutubeAnnotationList(annotationElements);
-            startNewAnnotationRenderer(annotations);
+                window.dispatchEvent(
+                    new CustomEvent("ar-status-change", {
+                        detail: "Received annotation data from server. Annotations should now be loaded.\nClick to see annotation times.",
+                    })
+                );
+            } catch (e) {
+                // Sometimes the annotation data fails to parse, but I don't
+                // know why--as soon as I added logging, I could no longer
+                // reproduce the problem. So, catching the error will have to
+                // do for now.
+                window.dispatchEvent(
+                    new CustomEvent("ar-status-change", {
+                        detail: "Failed to parse annotations.",
+                    })
+                );
+                console.error("Failed to parse annotations:", e);
+                console.debug("Annotation data was:", annotationData);
+            }
         }
     } else if (request.type === "annotations_unavailable") {
         window.dispatchEvent(
