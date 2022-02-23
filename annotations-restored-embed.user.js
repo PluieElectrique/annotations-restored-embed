@@ -2,7 +2,7 @@
 // @name           Annotations Restored (embedded)
 // @description    Bring annotation support back to embedded YouTube videos
 // @author         Pluie
-// @version        0.1.2
+// @version        0.1.3
 // @license        GPLv3
 // @homepageURL    https://github.com/PluieElectrique/annotations-restored-embed
 // @supportURL     https://github.com/PluieElectrique/annotations-restored-embed/issues
@@ -143,11 +143,20 @@ function handleMessage(request) {
                 const annotations = annotationParser.parseYoutubeAnnotationList(annotationElements);
                 startNewAnnotationRenderer(annotations);
 
-                window.dispatchEvent(
-                    new CustomEvent("ar-status-change", {
-                        detail: "Received annotation data from server. Annotations should now be loaded.\nClick to see annotation times.",
-                    })
-                );
+                if (renderer.annotations.length) {
+                    window.dispatchEvent(
+                        new CustomEvent("ar-status-change", {
+                            detail: "Received annotation data from server. Annotations should now be loaded.\nClick to see annotation times.",
+                        })
+                    );
+                } else {
+                    // The API server can send an XML file with zero annotations.
+                    window.dispatchEvent(
+                        new CustomEvent("ar-status-change", {
+                            detail: "Annotations are not available for this video.",
+                        })
+                    );
+                }
             } catch (e) {
                 // Sometimes the annotation data fails to parse, but I don't
                 // know why--as soon as I added logging, I could no longer
