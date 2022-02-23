@@ -8,7 +8,7 @@ Once you have a userscript manager, [click here](https://github.com/PluieElectri
 
 # Usage
 
-The userscript is same as the original [Annotations Restored extension](https://github.com/isaackd/AnnotationsRestored), except that it only runs in embedded videos. Also, annotations are only fetched from invidio.us and links are opened in a new tab.
+The userscript is mostly the same as the original [Annotations Restored extension](https://github.com/isaackd/AnnotationsRestored). The main changes are that it only runs in embedded videos, annotations are only fetched from invidio.us, and links are opened in a new tab.
 
 # Legal
 
