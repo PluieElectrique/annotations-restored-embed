@@ -169,7 +169,7 @@ function handleMessage(request) {
                         },
                     })
                 );
-                console.error("Failed to parse annotations:", e);
+                console.error("Failed to parse annotations.");
                 console.debug("Annotation data was:", annotationData);
             }
         }
