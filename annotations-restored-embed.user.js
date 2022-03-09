@@ -2,7 +2,7 @@
 // @name           Annotations Restored (embedded)
 // @description    Bring annotation support back to embedded YouTube videos
 // @author         Pluie
-// @version        0.1.4
+// @version        0.1.5
 // @license        GPLv3
 // @homepageURL    https://github.com/PluieElectrique/annotations-restored-embed
 // @supportURL     https://github.com/PluieElectrique/annotations-restored-embed/issues
@@ -169,7 +169,7 @@ function handleMessage(request) {
                         },
                     })
                 );
-                console.error("Failed to parse annotations:", e);
+                console.error("Failed to parse annotations.");
                 console.debug("Annotation data was:", annotationData);
             }
         }
